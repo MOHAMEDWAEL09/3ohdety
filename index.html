@@ -149,7 +149,8 @@ const ic=n=>'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#
 const DEF={company:'مؤسسة بناء الساحل للمقاولات العامة',sheetTitle:'كشف تسوية عهدة',cardTitle:'كارت العمل الخاص بشهر',engineerLabel:'المهندس المشرف',accountsLabel:'الحسابات',offDay:5,theme:'ink',otMult:1.5,paidOff:0,payOnCard:1};
 function load(){try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.v===1)return o}catch(e){}return null}
 let S=load()||{v:1,settings:{},projects:[],custodies:[],workers:[],days:{},advances:[]};
-function fix(){S.settings=Object.assign({},DEF,S.settings||{});['projects','custodies','workers','advances'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.days)S.days={}}
+function fix(){S.settings=Object.assign({},DEF,S.settings||{});S.settings.offFri=1;['projects','custodies','workers','advances'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.days)S.days={}}
+if(S.settings&&!S.settings.offFri)S.settings.offDay=5;
 fix();
 let st=0;const flush=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const save=()=>{clearTimeout(st);st=setTimeout(flush,150)};
@@ -168,9 +169,9 @@ const getDay=(w,d)=>S.days[dk(w,d)]||null;
 function custBal(c){const o=+c.opening||0;let rec=o>0?o:0,exp=o<0?-o:0;c.entries.forEach(x=>{if(x.t==='r')rec+=x.amt;else exp+=x.amt});return{rec,exp,bal:rec-exp}}
 function setDay(w,d,p){const k=dk(w,d);const n=Object.assign({},S.days[k]||{},p);if(!n.s&&!(+n.ot)&&!(+n.ded)&&!n.note)delete S.days[k];else S.days[k]=n;save()}
 function setStatus(w,d,s){const cur=getDay(w,d)||{};if(cur.s===s){setDay(w,d,{s:'',ot:0});return}setDay(w,d,s==='p'?{s}:s==='a'?{s,ot:0}:{s,ot:0,ded:0})}
-function ms(w,y,m){let p=0,a=0,o=0,ot=0,ded=0;for(let d=1;d<=dim(y,m);d++){const r=S.days[dk(w,iso(y,m,d))];if(!r)continue;if(r.s==='p')p++;else if(r.s==='a')a++;else if(r.s==='o')o++;ot+=+r.ot||0;ded+=+r.ded||0}return{p,a,o,ot,ded}}
+function ms(w,y,m){let p=0,po=0,a=0,o=0,ot=0,ded=0;for(let d=1;d<=dim(y,m);d++){const r=S.days[dk(w,iso(y,m,d))];if(!r)continue;if(r.s==='p'){p++;if(isOff(iso(y,m,d)))po++}else if(r.s==='a')a++;else if(r.s==='o')o++;ot+=+r.ot||0;ded+=+r.ded||0}return{p,po,a,o,ot,ded}}
 function pay(w,y,m){const s=ms(w.id,y,m),wg=+w.wage||0,mo=w.wt==='m',dly=mo?wg/30:wg;
-  const base=mo?Math.max(0,wg-s.a*dly):(s.p+(+S.settings.paidOff===1?s.o:0))*wg;
+  const base=mo?Math.max(0,wg-s.a*dly):(s.p-s.po+(+S.settings.paidOff===1?s.o:0))*wg;
   const otp=s.ot*(+w.otRate||dly/8*(+S.settings.otMult||1.5));
   return Object.assign({},s,{wg,base:r2(base),otp:r2(otp),net:r2(base+otp-s.ded)})}
 const nextDoc=c=>String(Math.max(0,...c.entries.filter(e=>e.t==='e').map(e=>parseInt(e.doc,10)||0))+1);
@@ -235,7 +236,7 @@ function scrCustD(c){
 function wcard(w,d){const r=getDay(w.id,d)||{};const s=r.s||'';const a='data-w="'+w.id+'" data-d="'+d+'"';
   return '<div class="card w"><div class="hd"><b class="grow">'+esc(w.name)+'</b>'+(s?'<button class="link" data-a="dayE" '+a+'>خصم / ملاحظة</button>':'')+'</div>'+
   '<div class="sg"><button class="sb p'+(s==='p'?' on':'')+'" data-a="st" '+a+' data-v="p">'+ic('check')+'حاضر</button><button class="sb a'+(s==='a'?' on':'')+'" data-a="st" '+a+' data-v="a">'+ic('x')+'غائب</button><button class="sb o'+(s==='o'?' on':'')+'" data-a="st" '+a+' data-v="o">إجازة</button></div>'+
-  (s==='p'?'<div class="ctl"><span>ساعات إضافي</span><div class="step"><button data-a="ot" '+a+' data-v="-0.5" aria-label="إنقاص">−</button><span>'+fmtN(r.ot||0)+'</span><button data-a="ot" '+a+' data-v="0.5" aria-label="زيادة">+</button></div></div>':'')+
+  (s==='p'&&isOff(d)?'<small>يوم إجازة: الساعات كلها إضافي</small>':'')+(s==='p'?'<div class="ctl"><span>ساعات إضافي</span><div class="step"><button data-a="ot" '+a+' data-v="-0.5" aria-label="إنقاص">−</button><span>'+fmtN(r.ot||0)+'</span><button data-a="ot" '+a+' data-v="0.5" aria-label="زيادة">+</button></div></div>':'')+
   ((+r.ded||r.note)?'<small>'+(+r.ded?'خصم '+fmtN(r.ded):'')+(r.note?' · '+esc(r.note):'')+'</small>':'')+'</div>'}
 
 function scrToday(){const d=UI.date,off=isOff(d);
@@ -280,13 +281,14 @@ function sheet(){const s=UI.sh,el=$('#sheet');if(!s){el.innerHTML='';return}cons
     ft=(f.id?'<button class="btn dng" data-a="delW" style="width:60px" aria-label="حذف">'+ic('trash')+'</button>':'')+'<button class="btn pri" data-a="saveW">حفظ</button>'}
   else if(s==='day'){const w=wk(f.w)||{name:''};t=w.name+' · '+fmtD(f.d);
     b='<div class="sg"><button class="sb p'+(f.s==='p'?' on':'')+'" data-a="fs" data-v="p">حاضر</button><button class="sb a'+(f.s==='a'?' on':'')+'" data-a="fs" data-v="a">غائب</button><button class="sb o'+(f.s==='o'?' on':'')+'" data-a="fs" data-v="o">إجازة</button></div>'+
-    (f.s==='p'?'<div class="ctl"><span>ساعات إضافي</span><div class="step"><button data-a="fot" data-v="-0.5" aria-label="إنقاص">−</button><span>'+fmtN(f.ot)+'</span><button data-a="fot" data-v="0.5" aria-label="زيادة">+</button></div></div>':'')+
+    (f.s==='p'&&isOff(f.d)?'<small>يوم إجازة: الساعات كلها تتحسب إضافي.</small>':'')+(f.s==='p'?'<div class="ctl"><span>ساعات إضافي</span><div class="step"><button data-a="fot" data-v="-0.5" aria-label="إنقاص">−</button><span>'+fmtN(f.ot)+'</span><button data-a="fot" data-v="0.5" aria-label="زيادة">+</button></div></div>':'')+
     (f.s==='p'||f.s==='a'?inp('خصم','ded',f.ded,{m:'decimal'}):'')+inp('ملاحظة (اختياري)','note',f.note);
     ft='<button class="btn dng" data-a="clrDay" style="width:60px" aria-label="مسح اليوم">'+ic('trash')+'</button><button class="btn pri" data-a="saveDay">حفظ</button>'}
   else if(s==='settings'){t='الإعدادات';const x=S.settings;
-    b='<div class="fld"><label>اسم المنشأة (يظهر في الطباعة)</label><input class="inp" value="'+esc(x.company)+'" data-s="company"></div><div class="fld"><label>يوم الإجازة الأسبوعية</label><select class="inp" data-c="off">'+DAYS.map((n,i)=>'<option value="'+i+'"'+(+x.offDay===i?' selected':'')+'>'+n+'</option>').join('')+'</select></div>'+
+    b='<div class="fld"><label>اسم المنشأة (يظهر في الطباعة)</label><input class="inp" value="'+esc(x.company)+'" data-s="company"></div><div class="fld"><label>يوم الإجازة الأسبوعية</label><select class="inp" data-c="off"><option value="-1"'+(+x.offDay===-1?' selected':'')+'>لا يوجد إجازة أسبوعية</option>'+DAYS.map((n,i)=>'<option value="'+i+'"'+(+x.offDay===i?' selected':'')+'>'+n+'</option>').join('')+'</select></div>'+
     '<div class="fld"><label>اللون</label><div class="th">'+THEMES.map(h=>'<button style="background:'+h[1]+'" class="'+(x.theme===h[0]?'on':'')+'" data-a="theme" data-v="'+h[0]+'" aria-label="لون"></button>').join('')+'</div></div>'+
     '<button class="btn" data-a="backup">'+ic('pdf')+'حفظ نسخة احتياطية</button><label class="btn">'+ic('plus')+'استرجاع نسخة<input type="file" accept=".json" hidden data-c="restore"></label><small>'+(S.lastBackup?'آخر نسخة: '+fmtD(S.lastBackup)+'. ':'')+'النسخة تشمل صور الفواتير. أرسل النسخة لنفسك على واتساب عشان بياناتك تبقى مؤمّنة.</small><button class="btn dng" data-a="wipe">مسح كل البيانات</button>'}
+  else if(s==='offhrs'){const w=wk(f.w)||{name:''};t='عمل يوم الإجازة';b='<div>'+esc(w.name)+' اشتغل يوم '+DAYS[wd(f.d)]+'. كم ساعة؟ كل الساعات بتتحسب إضافي.</div><div class="chips">'+[4,6,8,10,12].map(h=>'<button class="chip" data-a="oh" data-v="'+h+'">'+h+' ساعات</button>').join('')+'</div>'+inp('عدد الساعات','h',f.h,{m:'decimal',c:'amt',id:'f-h'});ft='<button class="btn pri" data-a="saveOff">تأكيد</button>'}
   else if(s==='menu'){t=UI.menuT;b=UI.menu.map((m,i)=>'<button class="item" data-a="mpick" data-i="'+i+'"><span class="badge">'+ic(m.i)+'</span><span class="grow"><b>'+esc(m.t)+'</b><small>'+esc(m.s||'')+'</small></span></button>').join('')}
   else if(s==='confirm'){t='تأكيد';b='<div>'+esc(f.msg)+'</div>';ft='<button class="btn" data-a="cl">إلغاء</button><button class="btn dng" data-a="ok">'+esc(f.label||'حذف')+'</button>'}
   el.innerHTML='<div class="scrim" data-a="cl"></div><div class="sheet" role="dialog" aria-modal="true"><div class="sh"><h3>'+esc(t)+'</h3><button class="ib" data-a="cl" aria-label="إغلاق">'+ic('x')+'</button></div><div class="sb2">'+b+'</div>'+(ft?'<div class="sf">'+ft+'</div>':'')+'</div>'}
@@ -334,11 +336,13 @@ A.delW=()=>{const id=UI.f.id;ask('حذف العامل وكل سجلات حضور
 /* attendance */
 A.dp=()=>{UI.date=addDays(UI.date,-1);render()};
 A.dn=()=>{UI.date=addDays(UI.date,1);render()};
-A.st=d=>{setStatus(d.w,d.d,d.v);render()};
+A.st=d=>{const r=getDay(d.w,d.d)||{};if(d.v==='p'&&r.s!=='p'&&isOff(d.d)){open('offhrs',{w:d.w,d:d.d,h:'8'});return}setStatus(d.w,d.d,d.v);render()};
+A.oh=d=>{UI.f.h=d.v;sheet()};
+A.saveOff=()=>{const h=num(UI.f.h);if(!(h>0))return toast('اكتب عدد الساعات');setDay(UI.f.w,UI.f.d,{s:'p',ot:h});UI.sh=null;render()};
 A.ot=d=>{const r=getDay(d.w,d.d)||{};if(r.s!=='p')return;setDay(d.w,d.d,{ot:Math.max(0,Math.round(((+r.ot||0)+parseFloat(d.v))*2)/2)});render()};
 A.all=()=>{const dt=UI.date,off=isOff(dt);let n=0;S.workers.forEach(w=>{const r=getDay(w.id,dt);if(r&&r.s)return;setStatus(w.id,dt,off?'o':'p');n++});render();toast(n?'تم تحديد '+n+' عامل':'كل العمال محددون')};
 A.dayE=d=>{const r=getDay(d.w,d.d)||{};open('day',{w:d.w,d:d.d,s:r.s||'',ot:+r.ot||0,ded:r.ded?String(r.ded):'',note:r.note||''})};
-A.fs=d=>{UI.f.s=UI.f.s===d.v?'':d.v;sheet()};
+A.fs=d=>{UI.f.s=UI.f.s===d.v?'':d.v;if(UI.f.s==='p'&&isOff(UI.f.d)&&!UI.f.ot)UI.f.ot=8;sheet()};
 A.fot=d=>{UI.f.ot=Math.max(0,Math.round((UI.f.ot+parseFloat(d.v))*2)/2);sheet()};
 A.saveDay=()=>{const f=UI.f,p=f.s==='p';delete S.days[dk(f.w,f.d)];setDay(f.w,f.d,{s:f.s,ot:p?f.ot:0,ded:f.s==='o'?0:num(f.ded),note:(f.note||'').trim()});UI.sh=null;render()};
 A.clrDay=()=>{delete S.days[dk(UI.f.w,UI.f.d)];save();UI.sh=null;render()};
