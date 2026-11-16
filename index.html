@@ -257,7 +257,6 @@ function scrWorkers(){const e=UI.tab==='equip';
   mnav()+
   (wl().length?wl().map(w=>{const s=ms(w.id,UI.m.y,UI.m.m);return '<button class="item" data-a="ow" data-id="'+w.id+'"><span class="badge">'+esc((w.name.trim()[0]||'؟'))+'</span><span class="grow"><b>'+esc(w.name)+'</b><small>'+(w.wt==='c'?'مقطوعية · باقي '+fmtN(contractRem(w)):(w.eq?'اشتغلت ':'حضور ')+s.p+(w.eq?' · وقفت ':' · غياب ')+s.a+' · إضافي '+fmtN(s.ot))+'</small></span>'+ic('next')+'</button>'}).join(''):'<div class="empty">'+(e?'لا توجد معدات بعد.':'لا يوجد عمال بعد.')+'</div>')+
   '<button class="btn pri" data-a="newW">'+ic('plus')+(e?'معدة جديدة':'عامل جديد')+'</button></main>'+tabs()}
-A.wkm=d=>{UI.wk=d.v;render()};
 
 function scrWorkerD(w){const y=UI.m.y,m=UI.m.m,s=ms(w.id,y,m),p=pay(w,y,m);let rows='';
   for(let d=1;d<=dim(y,m);d++){const ds=iso(y,m,d),r=S.days[dk(w.id,ds)]||{};
