@@ -101,6 +101,7 @@ small,.sm{color:var(--mute);font-size:14px}
 .panel{display:flex;flex-direction:column;gap:10px}.panel h3{margin:0;font-size:16px}
 :root{--star:#d99a1b}:root[data-theme=navy]{--star:#f2c55c}
 .ic.on{fill:currentColor}.stars{display:inline-flex;gap:2px;color:var(--star);margin:2px 0}.stars .ic{width:18px;height:18px}.rate{display:flex;gap:6px;justify-content:center}.rate button{color:var(--mute);padding:4px}.rate button.on{color:var(--star)}.rate .ic{width:40px;height:40px}
+.co{display:flex;align-items:center;gap:6px}.co-b{flex:1;display:flex;align-items:center;gap:14px;background:var(--card);border:1px solid var(--line);border-radius:24px;padding:22px 16px;min-width:0;text-align:start}.co-b:active{background:var(--acs)}.co-b .badge{width:60px;height:60px;font-size:24px;border-radius:18px}.co-b b{font-size:20px}
 #toast{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:20px;font-weight:700;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s;max-width:88%;text-align:center}
 #toast.show{opacity:1}
 </style>
@@ -122,6 +123,7 @@ small,.sm{color:var(--mute);font-size:14px}
 <symbol id="i-minus" viewBox="0 0 24 24"><path d="M5 12h14"/></symbol>
 <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4-4.8-2.7-4.8 2.7 1-5.4-4-3.8 5.4-.7z"/></symbol>
 <symbol id="i-truck" viewBox="0 0 24 24"><path d="M3 16V7h11v9M14 10h4l3 3v3h-7M3 16h2M9 16h5"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></symbol>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-6h4v6"/></symbol>
 <symbol id="i-chart" viewBox="0 0 24 24"><path d="M5 20V11M12 20V4M19 20v-6"/></symbol>
 <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
 <symbol id="i-sheet" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2.5"/><path d="M4 10h16M4 15h16M10 4v16"/></symbol>
@@ -129,7 +131,11 @@ small,.sm{color:var(--mute);font-size:14px}
 <div id="app"><div id="scr" style="display:contents"></div><div id="sheet"></div><div id="toast"></div></div>
 <script>
 (()=>{'use strict';
-const KEY='ahdati.v1';
+let KEY='';
+const REGK='ahdati.co';
+function saveR(){try{localStorage.setItem(REGK,JSON.stringify(R))}catch(e){}}
+let R=null;try{const o=JSON.parse(localStorage.getItem(REGK));if(o&&Array.isArray(o.list))R=o}catch(e){}
+if(!R){R={list:[],theme:'ink'};try{const o=JSON.parse(localStorage.getItem('ahdati.v1'));if(o&&o.v===1){R.list.push({id:'c1',name:(o.settings&&o.settings.company)||'مؤسستي',key:'ahdati.v1'});R.theme=(o.settings&&o.settings.theme)||'ink'}}catch(e){}saveR()}
 const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const $=s=>document.querySelector(s);
@@ -152,19 +158,19 @@ const ic=n=>'<svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#
 /* ---------- data ---------- */
 const DEF={company:'مؤسسة بناء الساحل للمقاولات العامة',sheetTitle:'كشف تسوية عهدة',cardTitle:'كارت العمل الخاص بشهر',engineerLabel:'المهندس المشرف',accountsLabel:'الحسابات',offDay:5,theme:'ink',otMult:1.5,paidOff:0,payOnCard:1};
 function load(){try{const o=JSON.parse(localStorage.getItem(KEY));if(o&&o.v===1)return o}catch(e){}return null}
-let S=load()||{v:1,settings:{},projects:[],custodies:[],workers:[],days:{},advances:[]};
+let S={v:1,settings:{},projects:[],custodies:[],workers:[],days:{},advances:[]};
 function fix(){S.settings=Object.assign({},DEF,S.settings||{});S.settings.offFri=1;['projects','custodies','workers','advances','pays','reviews'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});if(!S.days)S.days={}}
 if(S.settings&&!S.settings.offFri)S.settings.offDay=5;
 fix();
-let st=0;const flush=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+let st=0;const flush=()=>{if(!KEY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
 const save=()=>{clearTimeout(st);st=setTimeout(flush,150)};
 addEventListener('pagehide',flush);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flush()});
 const THEMES=[['ink','#5a4af4'],['sand','#b4572b'],['green','#10806a'],['navy','#16204a']];
-const applyTheme=()=>{const t=THEMES.some(x=>x[0]===S.settings.theme)?S.settings.theme:'ink';document.documentElement.setAttribute('data-theme',t)};
+const applyTheme=()=>{const th=UI.home?R.theme:S.settings.theme;const t=THEMES.some(x=>x[0]===th)?th:'ink';document.documentElement.setAttribute('data-theme',t)};
 
 const nd=new Date();
-const UI={wk:'w',tab:'custody',view:null,date:today(),m:{y:nd.getFullYear(),m:nd.getMonth()},sh:null,f:{},_k:''};
+const UI={home:true,wk:'w',tab:'custody',view:null,date:today(),m:{y:nd.getFullYear(),m:nd.getMonth()},sh:null,f:{},_k:''};
 const cust=id=>S.custodies.find(c=>c.id===id);
 const wk=id=>S.workers.find(w=>w.id===id);
 const isOff=d=>wd(d)===+S.settings.offDay;
@@ -267,12 +273,13 @@ function scrWorkerD(w){const y=UI.m.y,m=UI.m.m,s=ms(w.id,y,m),p=pay(w,y,m);let r
   '<button class="btn pri" data-a="pdfW">'+ic('pdf')+'كارت العمل PDF</button>'+revBlock(w)+'<div class="card" style="padding:4px 10px">'+rows+'</div></main>'}
 
 function screen(){const v=UI.view;
+  if(UI.home)return scrHome();
   if(v&&v.k==='n')return scrNotes();
   if(v&&v.k==='c'){const c=cust(v.id);if(c)return scrCustD(c);UI.view=null}
   if(v&&v.k==='w'){const w=wk(v.id);if(w)return w.wt==='c'?scrContract(w):scrWorkerD(w);UI.view=null}
   return UI.tab==='today'?scrToday():UI.tab==='workers'||UI.tab==='equip'?scrWorkers():UI.tab==='reports'?scrReports():UI.tab==='notes'?scrNotes():scrCust()}
-function render(){const o=document.querySelector('.main');const k=[UI.tab,UI.view&&UI.view.id,UI.date,UI.m.m].join('|');const pos=o&&UI._k===k?o.scrollTop:0;
-  $('#scr').innerHTML=screen();UI._k=k;const n=document.querySelector('.main');if(n)n.scrollTop=pos;sheet()}
+function render(){const o=document.querySelector('.main');const k=[UI.home,UI.tab,UI.view&&UI.view.id,UI.date,UI.m.m].join('|');const pos=o&&UI._k===k?o.scrollTop:0;
+  $('#scr').innerHTML=screen();hdr();UI._k=k;const n=document.querySelector('.main');if(n)n.scrollTop=pos;sheet()}
 
 /* ---------- sheets ---------- */
 function toast(t){const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('show'),2200)}
@@ -296,9 +303,11 @@ function sheet(){const s=UI.sh,el=$('#sheet');if(!s){el.innerHTML='';return}cons
   else if(s==='settings'){t='الإعدادات';const x=S.settings;
     b='<div class="fld"><label>اسم المنشأة (يظهر في الطباعة)</label><input class="inp" value="'+esc(x.company)+'" data-s="company"></div><div class="fld"><label>يوم الإجازة الأسبوعية</label><select class="inp" data-c="off"><option value="-1"'+(+x.offDay===-1?' selected':'')+'>لا يوجد إجازة أسبوعية</option>'+DAYS.map((n,i)=>'<option value="'+i+'"'+(+x.offDay===i?' selected':'')+'>'+n+'</option>').join('')+'</select></div>'+
     '<div class="fld"><label>اللون</label><div class="th">'+THEMES.map(h=>'<button style="background:'+h[1]+'" class="'+(x.theme===h[0]?'on':'')+'" data-a="theme" data-v="'+h[0]+'" aria-label="لون"></button>').join('')+'</div></div>'+
-    '<button class="btn" data-a="backup">'+ic('pdf')+'حفظ نسخة احتياطية</button><label class="btn">'+ic('plus')+'استرجاع نسخة<input type="file" accept=".json" hidden data-c="restore"></label><small>'+(S.lastBackup?'آخر نسخة: '+fmtD(S.lastBackup)+'. ':'')+'النسخة تشمل صور الفواتير. أرسل النسخة لنفسك على واتساب عشان بياناتك تبقى مؤمّنة.</small><button class="btn dng" data-a="wipe">مسح كل البيانات</button>'}
+    '<button class="btn" data-a="backup">'+ic('pdf')+'حفظ نسخة احتياطية</button><label class="btn">'+ic('plus')+'استرجاع نسخة<input type="file" accept=".json" hidden data-c="restore"></label><small>'+(S.lastBackup?'آخر نسخة: '+fmtD(S.lastBackup)+'. ':'')+'النسخة تشمل صور الفواتير. أرسل النسخة لنفسك على واتساب عشان بياناتك تبقى مؤمّنة.</small><button class="btn dng" data-a="wipe">مسح بيانات هذه المؤسسة</button>'}
   else if(s==='pay'){const w=wk(f.w)||{name:''};t=f.id?'تعديل الدفعة':'دفعة لـ '+w.name;b=inp('المبلغ','amt',f.amt,{m:'decimal',c:'amt',id:'f-amt'})+inp('التاريخ','d',f.d,{t:'date'})+inp('ملاحظة (اختياري)','note',f.note);ft=(f.id?'<button class="btn dng" data-a="delPay" style="width:60px" aria-label="حذف">'+ic('trash')+'</button>':'')+'<button class="btn pri" data-a="savePay">حفظ</button>'}
   else if(s==='rev'){t=f.id?'تعديل التقييم':'تقييم جديد';b=(f.id?'<div><b>'+esc(f.name)+'</b></div>':(S.workers.length?'<div class="fld"><label>العامل</label><select class="inp" data-b="wid">'+S.workers.map(w=>'<option value="'+w.id+'"'+(w.id===f.wid?' selected':'')+'>'+esc(w.name)+'</option>').join('')+'</select></div>':'<small>أضف عمالاً أولاً.</small>'))+'<div class="rate">'+[1,2,3,4,5].map(i=>'<button class="'+(i<=f.stars?'on':'')+'" data-a="rate" data-v="'+i+'" aria-label="'+i+' نجوم">'+star(i<=f.stars)+'</button>').join('')+'</div>'+inp('ملاحظة','note',f.note,{p:'مثال: شغله ممتاز / بيتأخر'});ft=(f.id?'<button class="btn dng" data-a="delRev" style="width:60px" aria-label="حذف">'+ic('trash')+'</button>':'')+'<button class="btn pri" data-a="saveRev">حفظ</button>'}
+  else if(s==='co'){t=f.id?'تعديل المؤسسة':'مؤسسة جديدة';b=inp('اسم المؤسسة','name',f.name,{id:'f-co'});ft=(f.id?'<button class="btn dng" data-a="delCo" style="width:60px" aria-label="حذف">'+ic('trash')+'</button>':'')+'<button class="btn pri" data-a="saveCo">'+(f.id?'حفظ':'إنشاء وفتح')+'</button>'}
+  else if(s==='hset'){t='اللون';b='<div class="th">'+THEMES.map(h=>'<button style="background:'+h[1]+'" class="'+(R.theme===h[0]?'on':'')+'" data-a="theme" data-v="'+h[0]+'" aria-label="لون"></button>').join('')+'</div>'}
   else if(s==='offhrs'){const w=wk(f.w)||{name:''};t='عمل يوم الإجازة';b='<div>'+esc(w.name)+' اشتغل يوم '+DAYS[wd(f.d)]+'. كم ساعة؟ كل الساعات بتتحسب إضافي.</div><div class="chips">'+[4,6,8,10,12].map(h=>'<button class="chip" data-a="oh" data-v="'+h+'">'+h+' ساعات</button>').join('')+'</div>'+inp('عدد الساعات','h',f.h,{m:'decimal',c:'amt',id:'f-h'});ft='<button class="btn pri" data-a="saveOff">تأكيد</button>'}
   else if(s==='menu'){t=UI.menuT;b=UI.menu.map((m,i)=>'<button class="item" data-a="mpick" data-i="'+i+'"><span class="badge">'+ic(m.i)+'</span><span class="grow"><b>'+esc(m.t)+'</b><small>'+esc(m.s||'')+'</small></span></button>').join('')}
   else if(s==='confirm'){t='تأكيد';b='<div>'+esc(f.msg)+'</div>';ft='<button class="btn" data-a="cl">إلغاء</button><button class="btn dng" data-a="ok">'+esc(f.label||'حذف')+'</button>'}
@@ -359,9 +368,9 @@ A.saveDay=()=>{const f=UI.f,p=f.s==='p';delete S.days[dk(f.w,f.d)];setDay(f.w,f.
 A.clrDay=()=>{delete S.days[dk(UI.f.w,UI.f.d)];save();UI.sh=null;render()};
 /* settings */
 A.settings=()=>open('settings');
-A.theme=d=>{S.settings.theme=d.v;save();applyTheme();sheet()};
-A.wipe=()=>ask('سيتم مسح كل العهد والعمال والصور من هذا الجهاز. تأكد أنك أخذت نسخة احتياطية.',()=>{S={v:1,settings:{},projects:[],custodies:[],workers:[],days:{},advances:[]};fix();flush();DB.clear();Object.keys(PH).forEach(k=>delete PH[k]);UI.view=null;applyTheme();toast('تم المسح')},'مسح الكل');
-A.backup=async()=>{flush();S.lastBackup=today();save();const photos={};for(const k of await DB.keys()){const v=await DB.get(k);if(v)photos[k]=v}await out(new Blob([JSON.stringify({app:'ahdati',v:1,S,photos})],{type:'application/json'}),'ahdati-backup-'+today()+'.json')};
+A.theme=d=>{if(!UI.home){S.settings.theme=d.v;save()}R.theme=d.v;saveR();applyTheme();sheet()};
+A.wipe=()=>ask('سيتم مسح كل العهد والعمال والصور في هذه المؤسسة فقط. تأكد أنك أخذت نسخة احتياطية.',()=>{phDelAll(S);const nm=S.settings.company,th=S.settings.theme;S={v:1,settings:{company:nm,theme:th},projects:[],custodies:[],workers:[],days:{},advances:[]};fix();flush();UI.view=null;UI.tab='custody';applyTheme();toast('تم المسح')},'مسح الكل');
+A.backup=async()=>{flush();S.lastBackup=today();save();const photos={};for(const c of S.custodies)for(const e of c.entries)if(e.photo){const v=PH[e.id]||await DB.get(e.id);if(v)photos[e.id]=v}await out(new Blob([JSON.stringify({app:'ahdati',v:1,S,photos})],{type:'application/json'}),'ahdati-'+(S.settings.company||'backup').replace(/\s+/g,'-')+'-'+today()+'.json')};
 
 /* ---------- PDF (canvas -> pdf) ---------- */
 const FONT='"Cairo","SF Arabic","Segoe UI","Noto Sans Arabic",Tahoma,Arial,sans-serif';
@@ -625,6 +634,34 @@ function xlsxContract(w){const ps=payList(w.id).sort((a,b)=>a.d<b.d?-1:a.d>b.d?1
   rows.push([{v:'المتفق عليه',s:2},null,{v:agreed,s:2}]);rows.push([{v:'الباقي',s:2},null,{f:'C'+(t+1)+'-C'+t,v:r2(agreed-paid),s:2}]);
   return buildXlsx([{name:'مقطوعية',rows,widths:[14,34,14]}])}
 
+/* ---------- companies + back button ---------- */
+function phDelAll(o){(o.custodies||[]).forEach(c=>(c.entries||[]).forEach(e=>{if(e.photo){DB.del(e.id);delete PH[e.id]}}))}
+function patchName(c,nm){try{const o=JSON.parse(localStorage.getItem(c.key));if(o){o.settings=o.settings||{};o.settings.company=nm;localStorage.setItem(c.key,JSON.stringify(o))}}catch(e){}if(KEY===c.key)S.settings.company=nm}
+function coInfo(c){try{const o=JSON.parse(localStorage.getItem(c.key));if(o&&o.v===1){const w=o.workers||[];return w.filter(x=>!x.eq).length+' عامل · '+w.filter(x=>x.eq).length+' معدة · '+(o.custodies||[]).length+' عهدة'}}catch(e){}return 'مؤسسة جديدة'}
+function scrHome(){return '<header class="top"><h1>عهدتي<small style="display:block;font-size:14px;font-weight:600">اختر المؤسسة</small></h1><button class="ib" data-a="settingsH" aria-label="اللون">'+ic('gear')+'</button></header><main class="main">'+
+  (R.list.length?R.list.map(c=>'<div class="co"><button class="co-b" data-a="openCo" data-id="'+c.id+'"><span class="badge">'+esc(c.name.trim()[0]||'؟')+'</span><span class="grow"><b>'+esc(c.name)+'</b><small>'+coInfo(c)+'</small></span>'+ic('next')+'</button><button class="ib" data-a="editCo" data-id="'+c.id+'" aria-label="تعديل">'+ic('edit')+'</button></div>').join(''):'<div class="empty">لا توجد مؤسسات بعد.<br>أضف أول مؤسسة.</div>')+
+  '<button class="btn pri" data-a="newCo">'+ic('plus')+'مؤسسة جديدة</button></main>'}
+function hdr(){if(UI.home||UI.view)return;const h=document.querySelector('#scr .top');if(!h)return;h.insertAdjacentHTML('afterbegin','<button class="ib" data-a="home" aria-label="تبديل المؤسسة">'+ic('home')+'</button>');const t=h.querySelector('h1');if(t)t.insertAdjacentHTML('beforeend','<small style="display:block;font-size:13px;font-weight:600">'+esc(S.settings.company)+'</small>')}
+function openCo(id){const c=R.list.find(x=>x.id===id);if(!c)return;flush();KEY=c.key;let o=null;try{o=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+  S=o&&o.v===1?o:{v:1,settings:{company:c.name},projects:[],custodies:[],workers:[],days:{},advances:[]};
+  if(S.settings&&!S.settings.offFri)S.settings.offDay=5;fix();
+  UI.home=false;UI.tab='custody';UI.view=null;UI.sh=null;UI.pv=null;UI.date=today();UI.rq='';applyTheme();render();flush()}
+function goHome(){flush();UI.home=true;UI.view=null;UI.sh=null;UI.pv=null;applyTheme();render()}
+function goBack(){if(UI.pv){UI.pv=null;sheet();return true}if(UI.sh){UI.sh=null;render();return true}if(UI.view){UI.view=null;render();return true}if(!UI.home){goHome();return true}return false}
+A.home=goHome;
+A.openCo=d=>openCo(d.id);
+A.settingsH=()=>open('hset');
+A.newCo=()=>open('co',{id:null,name:''});
+A.editCo=d=>{const c=R.list.find(x=>x.id===d.id);if(c)open('co',{id:c.id,name:c.name})};
+A.saveCo=()=>{const f=UI.f,nm=(f.name||'').trim();if(!nm)return toast('اكتب اسم المؤسسة');
+  if(f.id){const c=R.list.find(x=>x.id===f.id);c.name=nm;patchName(c,nm);saveR();UI.sh=null;render();toast('تم الحفظ')}
+  else{const id='c'+uid();R.list.push({id,name:nm,key:'ahdati.c.'+id});saveR();UI.sh=null;openCo(id)}};
+A.delCo=()=>{const id=UI.f.id,c=R.list.find(x=>x.id===id);if(!c)return;ask('حذف مؤسسة «'+c.name+'» وكل بياناتها وصورها؟ مش هتقدر ترجعها إلا من نسخة احتياطية.',()=>{try{phDelAll(JSON.parse(localStorage.getItem(c.key))||{})}catch(e){}try{localStorage.removeItem(c.key)}catch(e){}if(KEY===c.key)KEY='';R.list=R.list.filter(x=>x.id!==id);saveR();toast('تم الحذف')})};
+history.replaceState({b:0},'');history.pushState({b:1},'');
+addEventListener('popstate',()=>{if(goBack()){history.pushState({b:1},'');return}
+  if(UI.exitAt&&Date.now()-UI.exitAt<2200){history.back();return}
+  UI.exitAt=Date.now();toast('اضغط رجوع مرة تانية للخروج');history.pushState({b:1},'')});
+
 /* ---------- events ---------- */
 const CH={
   photo:t=>{const f=t.files&&t.files[0];if(!f)return;readImage(f).then(u=>{UI.f.photo=u;UI.f.photoNew=true;UI.f.photoRemoved=false;UI.f.hasPhoto=true;sheet()}).catch(()=>toast('تعذّر قراءة الصورة'));t.value=''},
@@ -632,10 +669,10 @@ const CH={
   off:t=>{S.settings.offDay=+t.value;save()},
   restore:t=>{const f=t.files&&t.files[0];if(!f)return;const r=new FileReader();
     r.onload=()=>{try{const o=JSON.parse(r.result),d=o&&o.S?o.S:o;if(!d||d.v!==1||!Array.isArray(d.custodies))throw 0;
-      ask('استبدال البيانات الحالية بالنسخة الاحتياطية؟',async()=>{S=d;fix();flush();await DB.clear();Object.keys(PH).forEach(k=>delete PH[k]);if(o.photos)for(const k of Object.keys(o.photos))await DB.put(k,o.photos[k]);applyTheme();UI.view=null;render();toast('تمت الاستعادة')},'استبدال')}catch(e){toast('الملف غير صالح')}};r.readAsText(f);t.value=''}};
+      ask('استبدال البيانات الحالية بالنسخة الاحتياطية؟',async()=>{phDelAll(S);S=d;fix();{const c0=R.list.find(x=>x.key===KEY);if(c0)S.settings.company=c0.name}flush();Object.keys(PH).forEach(k=>delete PH[k]);if(o.photos)for(const k of Object.keys(o.photos))await DB.put(k,o.photos[k]);applyTheme();UI.view=null;render();toast('تمت الاستعادة')},'استبدال')}catch(e){toast('الملف غير صالح')}};r.readAsText(f);t.value=''}};
 const app=$('#app');
 app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)return;const f=A[t.dataset.a];if(f)f(t.dataset,t)});
-app.addEventListener('input',e=>{const t=e.target;if(t.dataset.q){UI.rq=t.value;const l=$('#rlist');if(l)l.innerHTML=revList();return}if(t.dataset.b)UI.f[t.dataset.b]=t.value;else if(t.dataset.s){S.settings[t.dataset.s]=t.value;save()}});
+app.addEventListener('input',e=>{const t=e.target;if(t.dataset.q){UI.rq=t.value;const l=$('#rlist');if(l)l.innerHTML=revList();return}if(t.dataset.b)UI.f[t.dataset.b]=t.value;else if(t.dataset.s){S.settings[t.dataset.s]=t.value;save();if(t.dataset.s==='company'){const c=R.list.find(x=>x.key===KEY);if(c){c.name=t.value;saveR()}}}});
 app.addEventListener('change',e=>{const t=e.target,h=t.dataset&&t.dataset.c;if(h&&CH[h])CH[h](t)});
 app.addEventListener('keydown',e=>{if(e.key!=='Enter')return;if(e.target.id==='f-desc'){e.preventDefault();const a=$('#f-amt');if(a)a.focus()}else if(e.target.id==='f-amt'){e.preventDefault();A.saveE()}});
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist()}catch(e){}
