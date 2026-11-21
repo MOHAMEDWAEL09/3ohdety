@@ -135,7 +135,7 @@ let KEY='';
 const REGK='ahdati.co';
 function saveR(){try{localStorage.setItem(REGK,JSON.stringify(R))}catch(e){}}
 let R=null;try{const o=JSON.parse(localStorage.getItem(REGK));if(o&&Array.isArray(o.list))R=o}catch(e){}
-if(!R){R={list:[],theme:'ink'};try{const o=JSON.parse(localStorage.getItem('ahdati.v1'));if(o&&o.v===1){R.list.push({id:'c1',name:(o.settings&&o.settings.company)||'مؤسستي',key:'ahdati.v1'});R.theme=(o.settings&&o.settings.theme)||'ink'}}catch(e){}saveR()}
+if(!R){R={list:[],theme:'ink'};try{const o=JSON.parse(localStorage.getItem('ahdati.v1'));if(o&&o.v===1){R.list.push({id:'c'+Math.random().toString(36).slice(2,8),name:(o.settings&&o.settings.company)||'مؤسستي',key:'ahdati.v1'});R.theme=(o.settings&&o.settings.theme)||'ink'}}catch(e){}saveR()}
 const MONTHS=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const DAYS=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const $=s=>document.querySelector(s);
@@ -163,7 +163,7 @@ function fix(){S.settings=Object.assign({},DEF,S.settings||{});S.settings.offFri
 if(S.settings&&!S.settings.offFri)S.settings.offDay=5;
 fix();
 let st=0;const flush=()=>{if(!KEY)return;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
-const save=()=>{clearTimeout(st);st=setTimeout(flush,150)};
+const save=()=>{if(KEY)S.mod=Date.now();clearTimeout(st);st=setTimeout(()=>{flush();autoSync()},150)};
 addEventListener('pagehide',flush);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)flush()});
 const THEMES=[['ink','#5a4af4'],['sand','#b4572b'],['green','#10806a'],['navy','#16204a']];
@@ -306,6 +306,8 @@ function sheet(){const s=UI.sh,el=$('#sheet');if(!s){el.innerHTML='';return}cons
     '<button class="btn" data-a="backup">'+ic('pdf')+'حفظ نسخة احتياطية</button><label class="btn">'+ic('plus')+'استرجاع نسخة<input type="file" accept=".json" hidden data-c="restore"></label><small>'+(S.lastBackup?'آخر نسخة: '+fmtD(S.lastBackup)+'. ':'')+'النسخة تشمل صور الفواتير. أرسل النسخة لنفسك على واتساب عشان بياناتك تبقى مؤمّنة.</small><button class="btn dng" data-a="wipe">مسح بيانات هذه المؤسسة</button>'}
   else if(s==='pay'){const w=wk(f.w)||{name:''};t=f.id?'تعديل الدفعة':'دفعة لـ '+w.name;b=inp('المبلغ','amt',f.amt,{m:'decimal',c:'amt',id:'f-amt'})+inp('التاريخ','d',f.d,{t:'date'})+inp('ملاحظة (اختياري)','note',f.note);ft=(f.id?'<button class="btn dng" data-a="delPay" style="width:60px" aria-label="حذف">'+ic('trash')+'</button>':'')+'<button class="btn pri" data-a="savePay">حفظ</button>'}
   else if(s==='rev'){t=f.id?'تعديل التقييم':'تقييم جديد';b=(f.id?'<div><b>'+esc(f.name)+'</b></div>':(S.workers.length?'<div class="fld"><label>العامل</label><select class="inp" data-b="wid">'+S.workers.map(w=>'<option value="'+w.id+'"'+(w.id===f.wid?' selected':'')+'>'+esc(w.name)+'</option>').join('')+'</select></div>':'<small>أضف عمالاً أولاً.</small>'))+'<div class="rate">'+[1,2,3,4,5].map(i=>'<button class="'+(i<=f.stars?'on':'')+'" data-a="rate" data-v="'+i+'" aria-label="'+i+' نجوم">'+star(i<=f.stars)+'</button>').join('')+'</div>'+inp('ملاحظة','note',f.note,{p:'مثال: شغله ممتاز / بيتأخر'});ft=(f.id?'<button class="btn dng" data-a="delRev" style="width:60px" aria-label="حذف">'+ic('trash')+'</button>':'')+'<button class="btn pri" data-a="saveRev">حفظ</button>'}
+  else if(s==='sync'){t='المزامنة مع جوجل';b='<small>'+esc(SY.msg||(R.sync&&R.sync.last?'آخر مزامنة '+clock(R.sync.last):'غير مفعّلة'))+'</small>'+inp('رابط الـScript (Web app URL)','url',f.url,{p:'https://script.google.com/macros/s/.../exec'})+inp('المفتاح السري','key',f.key)+'<small>استخدم نفس الرابط والمفتاح على كل جهاز عشان البيانات تتزامن.</small>';ft=(syOn()?'<button class="btn dng" data-a="syOff" style="width:auto;padding:0 16px">فصل</button>':'')+'<button class="btn pri" data-a="syGo">'+(syOn()?'حفظ ومزامنة':'تفعيل ومزامنة')+'</button>'}
+  else if(s==='conf'){const x=SY.conf[0]||{},c=R.list.find(q=>q.id===x.id)||{name:''};t='تعارض في المزامنة';b='<div>مؤسسة «'+esc(c.name)+'» اتعدّلت على الجهاز ده وعلى جهاز تاني قبل ما تتزامن. تحتفظ بأنهي نسخة؟</div><small>النسخة التانية هتتستبدل.</small>';ft='<button class="btn" data-a="cfRemote">نسخة جوجل</button><button class="btn pri" data-a="cfLocal">نسخة الجهاز ده</button>'}
   else if(s==='co'){t=f.id?'تعديل المؤسسة':'مؤسسة جديدة';b=inp('اسم المؤسسة','name',f.name,{id:'f-co'});ft=(f.id?'<button class="btn dng" data-a="delCo" style="width:60px" aria-label="حذف">'+ic('trash')+'</button>':'')+'<button class="btn pri" data-a="saveCo">'+(f.id?'حفظ':'إنشاء وفتح')+'</button>'}
   else if(s==='hset'){t='اللون';b='<div class="th">'+THEMES.map(h=>'<button style="background:'+h[1]+'" class="'+(R.theme===h[0]?'on':'')+'" data-a="theme" data-v="'+h[0]+'" aria-label="لون"></button>').join('')+'</div>'}
   else if(s==='offhrs'){const w=wk(f.w)||{name:''};t='عمل يوم الإجازة';b='<div>'+esc(w.name)+' اشتغل يوم '+DAYS[wd(f.d)]+'. كم ساعة؟ كل الساعات بتتحسب إضافي.</div><div class="chips">'+[4,6,8,10,12].map(h=>'<button class="chip" data-a="oh" data-v="'+h+'">'+h+' ساعات</button>').join('')+'</div>'+inp('عدد الساعات','h',f.h,{m:'decimal',c:'amt',id:'f-h'});ft='<button class="btn pri" data-a="saveOff">تأكيد</button>'}
@@ -369,7 +371,7 @@ A.clrDay=()=>{delete S.days[dk(UI.f.w,UI.f.d)];save();UI.sh=null;render()};
 /* settings */
 A.settings=()=>open('settings');
 A.theme=d=>{if(!UI.home){S.settings.theme=d.v;save()}R.theme=d.v;saveR();applyTheme();sheet()};
-A.wipe=()=>ask('سيتم مسح كل العهد والعمال والصور في هذه المؤسسة فقط. تأكد أنك أخذت نسخة احتياطية.',()=>{phDelAll(S);const nm=S.settings.company,th=S.settings.theme;S={v:1,settings:{company:nm,theme:th},projects:[],custodies:[],workers:[],days:{},advances:[]};fix();flush();UI.view=null;UI.tab='custody';applyTheme();toast('تم المسح')},'مسح الكل');
+A.wipe=()=>ask('سيتم مسح كل العهد والعمال والصور في هذه المؤسسة فقط. تأكد أنك أخذت نسخة احتياطية.',()=>{phDelAll(S);const nm=S.settings.company,th=S.settings.theme;S={v:1,settings:{company:nm,theme:th},projects:[],custodies:[],workers:[],days:{},advances:[]};fix();S.mod=Date.now();flush();autoSync();UI.view=null;UI.tab='custody';applyTheme();toast('تم المسح')},'مسح الكل');
 A.backup=async()=>{flush();S.lastBackup=today();save();const photos={};for(const c of S.custodies)for(const e of c.entries)if(e.photo){const v=PH[e.id]||await DB.get(e.id);if(v)photos[e.id]=v}await out(new Blob([JSON.stringify({app:'ahdati',v:1,S,photos})],{type:'application/json'}),'ahdati-'+(S.settings.company||'backup').replace(/\s+/g,'-')+'-'+today()+'.json')};
 
 /* ---------- PDF (canvas -> pdf) ---------- */
@@ -640,7 +642,7 @@ function patchName(c,nm){try{const o=JSON.parse(localStorage.getItem(c.key));if(
 function coInfo(c){try{const o=JSON.parse(localStorage.getItem(c.key));if(o&&o.v===1){const w=o.workers||[];return w.filter(x=>!x.eq).length+' عامل · '+w.filter(x=>x.eq).length+' معدة · '+(o.custodies||[]).length+' عهدة'}}catch(e){}return 'مؤسسة جديدة'}
 function scrHome(){return '<header class="top"><h1>عهدتي<small style="display:block;font-size:14px;font-weight:600">اختر المؤسسة</small></h1><button class="ib" data-a="settingsH" aria-label="اللون">'+ic('gear')+'</button></header><main class="main">'+
   (R.list.length?R.list.map(c=>'<div class="co"><button class="co-b" data-a="openCo" data-id="'+c.id+'"><span class="badge">'+esc(c.name.trim()[0]||'؟')+'</span><span class="grow"><b>'+esc(c.name)+'</b><small>'+coInfo(c)+'</small></span>'+ic('next')+'</button><button class="ib" data-a="editCo" data-id="'+c.id+'" aria-label="تعديل">'+ic('edit')+'</button></div>').join(''):'<div class="empty">لا توجد مؤسسات بعد.<br>أضف أول مؤسسة.</div>')+
-  '<button class="btn pri" data-a="newCo">'+ic('plus')+'مؤسسة جديدة</button></main>'}
+  '<button class="btn pri" data-a="newCo">'+ic('plus')+'مؤسسة جديدة</button><button class="btn s" data-a="syncSet">'+ic('up')+'المزامنة مع جوجل</button><small style="text-align:center">'+esc(syOn()?(SY.msg||(R.sync.last?'آخر مزامنة '+clock(R.sync.last):'')):'غير مفعّلة — فعّلها عشان بياناتك تتأمّن')+'</small></main>'}
 function hdr(){if(UI.home||UI.view)return;const h=document.querySelector('#scr .top');if(!h)return;h.insertAdjacentHTML('afterbegin','<button class="ib" data-a="home" aria-label="تبديل المؤسسة">'+ic('home')+'</button>');const t=h.querySelector('h1');if(t)t.insertAdjacentHTML('beforeend','<small style="display:block;font-size:13px;font-weight:600">'+esc(S.settings.company)+'</small>')}
 function openCo(id){const c=R.list.find(x=>x.id===id);if(!c)return;flush();KEY=c.key;let o=null;try{o=JSON.parse(localStorage.getItem(KEY))}catch(e){}
   S=o&&o.v===1?o:{v:1,settings:{company:c.name},projects:[],custodies:[],workers:[],days:{},advances:[]};
@@ -656,11 +658,66 @@ A.editCo=d=>{const c=R.list.find(x=>x.id===d.id);if(c)open('co',{id:c.id,name:c.
 A.saveCo=()=>{const f=UI.f,nm=(f.name||'').trim();if(!nm)return toast('اكتب اسم المؤسسة');
   if(f.id){const c=R.list.find(x=>x.id===f.id);c.name=nm;patchName(c,nm);saveR();UI.sh=null;render();toast('تم الحفظ')}
   else{const id='c'+uid();R.list.push({id,name:nm,key:'ahdati.c.'+id});saveR();UI.sh=null;openCo(id)}};
-A.delCo=()=>{const id=UI.f.id,c=R.list.find(x=>x.id===id);if(!c)return;ask('حذف مؤسسة «'+c.name+'» وكل بياناتها وصورها؟ مش هتقدر ترجعها إلا من نسخة احتياطية.',()=>{try{phDelAll(JSON.parse(localStorage.getItem(c.key))||{})}catch(e){}try{localStorage.removeItem(c.key)}catch(e){}if(KEY===c.key)KEY='';R.list=R.list.filter(x=>x.id!==id);saveR();toast('تم الحذف')})};
+A.delCo=()=>{const id=UI.f.id,c=R.list.find(x=>x.id===id);if(!c)return;ask('حذف مؤسسة «'+c.name+'» وكل بياناتها وصورها؟ مش هتقدر ترجعها إلا من نسخة احتياطية.',()=>{try{phDelAll(JSON.parse(localStorage.getItem(c.key))||{})}catch(e){}try{localStorage.removeItem(c.key)}catch(e){}if(KEY===c.key)KEY='';R.list=R.list.filter(x=>x.id!==id);R.del=(R.del||[]).concat(id);saveR();toast('تم الحذف');autoSync()})};
 history.replaceState({b:0},'');history.pushState({b:1},'');
 addEventListener('popstate',()=>{if(goBack()){history.pushState({b:1},'');return}
   if(UI.exitAt&&Date.now()-UI.exitAt<2200){history.back();return}
   UI.exitAt=Date.now();toast('اضغط رجوع مرة تانية للخروج');history.pushState({b:1},'')});
+
+/* ---------- Google sync (Apps Script) ---------- */
+const SY={busy:false,msg:'',conf:[]};
+const syOn=()=>!!(R.sync&&R.sync.url&&R.sync.key);
+const clock=t=>{const d=t?new Date(t):new Date();return p2(d.getHours())+':'+p2(d.getMinutes())+' · '+fmtD(toISO(d))};
+let syT=0;function autoSync(){if(!syOn())return;clearTimeout(syT);syT=setTimeout(()=>syncAll(),5000)}
+async function api(o){const r=await fetch(R.sync.url,{method:'POST',body:JSON.stringify(Object.assign({key:R.sync.key},o))});const j=await r.json();if(!j.ok)throw new Error(j.err||'خطأ');return j}
+const rdCo=c=>{try{return JSON.parse(localStorage.getItem(c.key))}catch(e){return null}};
+function setMsg(t){SY.msg=t;if(UI.sh==='sync')sheet();else if(UI.home&&!UI.sh)render()}
+async function pullCo(c,rm){const j=await api({a:'getco',id:c.id});if(!j.data)return;let o;try{o=JSON.parse(j.data)}catch(e){return}
+  try{localStorage.setItem(c.key,j.data)}catch(e){}c.sm=o.mod||rm;if(o.settings&&o.settings.company)c.name=o.settings.company;
+  if(KEY===c.key){S=o;fix();if(!UI.home)render()}}
+async function syncPhotos(meta){const have=new Set(meta.ph||[]);
+  for(const c of R.list){const o=KEY===c.key?S:rdCo(c);if(!o)continue;
+    for(const cu of o.custodies||[])for(const e of cu.entries||[]){if(!e.photo)continue;
+      const u=PH[e.id]||await DB.get(e.id);
+      if(u&&!have.has(e.id)){await api({a:'putph',id:e.id,data:u});have.add(e.id)}
+      else if(!u&&have.has(e.id)){const j=await api({a:'getph',id:e.id});if(j.data){await DB.put(e.id,j.data);PH[e.id]=j.data}}}}}
+async function syncAll(){
+  if(!syOn()||SY.busy)return;SY.busy=true;SY.conf=[];setMsg('جاري المزامنة…');
+  try{
+    flush();
+    const meta=(await api({a:'meta'})).meta||{list:[],del:[],mods:{},ph:[]};
+    const del=new Set([...(R.del||[]),...(meta.del||[])]);R.del=[...del];
+    R.list=R.list.filter(c=>!del.has(c.id));
+    (meta.list||[]).forEach(rc=>{if(!del.has(rc.id)&&!R.list.find(c=>c.id===rc.id))R.list.push({id:rc.id,name:rc.name,key:'ahdati.c.'+rc.id})});
+    for(const id of R.del)if(meta.mods&&meta.mods[id]!==undefined)await api({a:'delco',id});
+    for(const c of R.list){
+      const o=rdCo(c);if(o&&!o.mod){o.mod=Date.now();try{localStorage.setItem(c.key,JSON.stringify(o))}catch(e){}if(KEY===c.key)S.mod=o.mod}
+      const lm=o?o.mod||0:0,rm=(meta.mods||{})[c.id]||0,sm=c.sm||0;
+      if(lm===rm){c.sm=lm;continue}
+      if(rm>sm&&lm<=sm)await pullCo(c,rm);
+      else if(lm>sm&&rm<=sm){await api({a:'putco',id:c.id,data:JSON.stringify(o),mod:lm});c.sm=lm}
+      else SY.conf.push({id:c.id,rm});
+    }
+    await api({a:'setlist',list:R.list.map(c=>({id:c.id,name:c.name})),del:R.del});
+    await syncPhotos(meta);
+    R.sync.last=Date.now();saveR();
+    setMsg(SY.conf.length?'في تعارض محتاج قرارك':'تمت المزامنة '+clock());
+  }catch(e){saveR();setMsg('تعذّرت المزامنة: '+(navigator.onLine?e.message:'مفيش نت'))}
+  SY.busy=false;if(SY.conf.length)openConf();else if(UI.home&&!UI.sh)render()}
+function openConf(){if(!SY.conf.length)return;UI.sh='conf';UI.f={};sheet()}
+function cfAfter(){UI.sh=null;if(SY.conf.length)return openConf();R.sync.last=Date.now();saveR();setMsg('تمت المزامنة '+clock());render()}
+A.cfLocal=async()=>{const x=SY.conf.shift(),c=R.list.find(q=>q.id===x.id);try{if(c){const o=rdCo(c)||{};o.mod=Date.now();localStorage.setItem(c.key,JSON.stringify(o));if(KEY===c.key)S.mod=o.mod;await api({a:'putco',id:c.id,data:JSON.stringify(o),mod:o.mod});c.sm=o.mod;saveR()}}catch(e){toast('تعذّر: '+e.message)}cfAfter()};
+A.cfRemote=async()=>{const x=SY.conf.shift(),c=R.list.find(q=>q.id===x.id);try{if(c)await pullCo(c,x.rm);saveR()}catch(e){toast('تعذّر: '+e.message)}cfAfter()};
+A.syncSet=()=>open('sync',{url:(R.sync||{}).url||'',key:(R.sync||{}).key||''});
+A.syGo=async()=>{const f=UI.f,u=(f.url||'').trim(),k=(f.key||'').trim();
+  if(!/^https:\/\/script\.google\.com\/.+\/exec/.test(u))return toast('الرابط لازم يبدأ بـ script.google.com وينتهي بـ exec');if(!k)return toast('اكتب المفتاح السري');
+  const old=R.sync;R.sync={url:u,key:k,last:(old&&old.last)||0};toast('جاري التجربة…');
+  try{await api({a:'ping'})}catch(e){R.sync=old||null;return toast('فشل الاتصال: '+(e.message||'تأكد من الرابط والمفتاح'))}
+  saveR();UI.sh=null;render();syncAll()};
+A.syOff=()=>{R.sync=null;saveR();UI.sh=null;render();toast('تم فصل المزامنة')};
+addEventListener('online',()=>syncAll());
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncAll()});
+setTimeout(()=>syncAll(),800);
 
 /* ---------- events ---------- */
 const CH={
@@ -669,7 +726,7 @@ const CH={
   off:t=>{S.settings.offDay=+t.value;save()},
   restore:t=>{const f=t.files&&t.files[0];if(!f)return;const r=new FileReader();
     r.onload=()=>{try{const o=JSON.parse(r.result),d=o&&o.S?o.S:o;if(!d||d.v!==1||!Array.isArray(d.custodies))throw 0;
-      ask('استبدال البيانات الحالية بالنسخة الاحتياطية؟',async()=>{phDelAll(S);S=d;fix();{const c0=R.list.find(x=>x.key===KEY);if(c0)S.settings.company=c0.name}flush();Object.keys(PH).forEach(k=>delete PH[k]);if(o.photos)for(const k of Object.keys(o.photos))await DB.put(k,o.photos[k]);applyTheme();UI.view=null;render();toast('تمت الاستعادة')},'استبدال')}catch(e){toast('الملف غير صالح')}};r.readAsText(f);t.value=''}};
+      ask('استبدال البيانات الحالية بالنسخة الاحتياطية؟',async()=>{phDelAll(S);S=d;fix();{const c0=R.list.find(x=>x.key===KEY);if(c0)S.settings.company=c0.name}S.mod=Date.now();flush();autoSync();Object.keys(PH).forEach(k=>delete PH[k]);if(o.photos)for(const k of Object.keys(o.photos))await DB.put(k,o.photos[k]);applyTheme();UI.view=null;render();toast('تمت الاستعادة')},'استبدال')}catch(e){toast('الملف غير صالح')}};r.readAsText(f);t.value=''}};
 const app=$('#app');
 app.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t)return;const f=A[t.dataset.a];if(f)f(t.dataset,t)});
 app.addEventListener('input',e=>{const t=e.target;if(t.dataset.q){UI.rq=t.value;const l=$('#rlist');if(l)l.innerHTML=revList();return}if(t.dataset.b)UI.f[t.dataset.b]=t.value;else if(t.dataset.s){S.settings[t.dataset.s]=t.value;save();if(t.dataset.s==='company'){const c=R.list.find(x=>x.key===KEY);if(c){c.name=t.value;saveR()}}}});
